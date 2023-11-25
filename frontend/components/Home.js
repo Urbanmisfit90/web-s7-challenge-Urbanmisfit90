@@ -1,13 +1,10 @@
-import React from 'react'
-import { useNavigate } from 'react-router-dom'
-import pizza from './images/pizza.jpg'
+// Home.js
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import pizza from './images/pizza.jpg';
 
 function Home() {
   const navigate = useNavigate();
-
-  const handleClick = () => {
-    navigate.push('/order');
-  };
 
   return (
     <div>
@@ -17,10 +14,11 @@ function Home() {
         alt="order-pizza"
         style={{ cursor: 'pointer' }}
         src={pizza}
-        onClick={handleClick}
+        onClick={() => navigate('/order')}
       />
     </div>
   );
 }
 
-export default Home
+export default Home;
+

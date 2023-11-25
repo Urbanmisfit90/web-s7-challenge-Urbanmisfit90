@@ -84,6 +84,7 @@ describe('Sprint 7 Challenge Learner Tests', () => {
     expect(true).toBe(false)
   })
 
+
 function sum(a, b) {
   a = Number(a)
   b = Number(b)
