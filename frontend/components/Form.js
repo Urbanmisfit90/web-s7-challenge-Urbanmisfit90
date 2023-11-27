@@ -3,10 +3,11 @@ import * as yup from "yup";
 import axios from "axios";
 
 const validationErrors = {
-  fullNameTooShort: "Full name must be at least 3 characters",
-  fullNameTooLong: "Full name must be at most 20 characters",
-  sizeIncorrect: "Size must be Small or Medium or Large",
+  fullNameTooShort: 'full name must be at least 3 characters',
+  fullNameTooLong: 'full name must be at most 20 characters',
+  sizeIncorrect: 'size must be S or M or L',
 };
+
 
 const toppings = [
   { topping_id: "1", text: "Pepperoni" },
@@ -19,6 +20,7 @@ const toppings = [
 const pizzaSchema = yup.object().shape({
   fullName: yup
     .string()
+    .trim()
     .min(3, validationErrors.fullNameTooShort)
     .max(20, validationErrors.fullNameTooLong)
     .required("Full name is required"),
@@ -35,10 +37,7 @@ const Form = () => {
     toppings: [],
   });
 
-  const [formErrors, setFormErrors] = useState({
-    fullName: "",
-    size: "",
-  });
+  const [formErrors, setFormErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState("");
   const [failureMessage, setFailureMessage] = useState("");
   const [isFormValid, setIsFormValid] = useState(false);
@@ -58,46 +57,22 @@ const Form = () => {
         toppings: updatedToppings,
       }));
     } else {
+      setFormValues((prevValues) => ({
+        ...prevValues,
+        [name]: value,
+      }));
       yup
         .reach(pizzaSchema, name)
         .validate(value)
         .then(() => {
           // If value is valid, the corresponding error message will be deleted
-          setFormErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
+          setFormErrors({ ...formErrors, [name]: "" });
         })
         .catch((err) => {
           // If invalid, we update the error message with the text returned by Yup
           // This error message was hard-coded in the schema
-          setFormErrors((prevErrors) => ({
-            ...prevErrors,
-            [name]: err.errors[0],
-          }));
+          setFormErrors({ ...formErrors, [name]: err.errors[0] });
         });
-
-      // Update the form values
-      setFormValues((prevValues) => ({
-        ...prevValues,
-        [name]: value,
-      }));
-
-      // Additional validation for the 'size' field
-      if (name === "size") {
-        yup
-          .reach(pizzaSchema, name)
-          .validate(value)
-          .then(() => {
-            // If value is valid, the corresponding error message will be deleted
-            setFormErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
-          })
-          .catch((err) => {
-            // If invalid, we update the error message with the text returned by Yup
-            // This error message was hard-coded in the schema
-            setFormErrors((prevErrors) => ({
-              ...prevErrors,
-              [name]: err.errors[0],
-            }));
-          });
-      }
     }
   };
 
@@ -178,9 +153,13 @@ const Form = () => {
             onChange={handleChange}
           >
             <option value="">----Choose Size----</option>
-            {["S", "M", "L"].map((value) => (
+            {[
+              { value: "S", label: "Small" },
+              { value: "M", label: "Medium" },
+              { value: "L", label: "Large" },
+            ].map(({ value, label }) => (
               <option key={value} value={value}>
-                {value}
+                {label}
               </option>
             ))}
           </select>
@@ -204,10 +183,7 @@ const Form = () => {
         ))}
       </div>
 
-      <input
-        type="submit"
-        disabled={!isFormValid || !!formErrors.fullName || !!formErrors.size}
-      />
+      <input type="submit" disabled={!isFormValid} />
     </form>
   );
 };
