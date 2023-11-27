@@ -24,9 +24,8 @@ const pizzaSchema = yup.object().shape({
     .required("Full name is required"),
   size: yup
     .string()
-    .matches(/^[SML]$/, validationErrors.sizeIncorrect)
+    .oneOf(["S", "M", "L"], validationErrors.sizeIncorrect)
     .required("Size is required"),
-  toppings: yup.array().of(yup.string().oneOf(toppings.map((t) => t.text))),
 });
 
 const Form = () => {
@@ -36,9 +35,13 @@ const Form = () => {
     toppings: [],
   });
 
-  const [formErrors, setFormErrors] = useState({});
+  const [formErrors, setFormErrors] = useState({
+    fullName: "",
+    size: "",
+  });
   const [successMessage, setSuccessMessage] = useState("");
   const [failureMessage, setFailureMessage] = useState("");
+  const [isFormValid, setIsFormValid] = useState(false);
 
   const handleChange = (evt) => {
     const { name, value, type, checked } = evt.target;
@@ -55,10 +58,46 @@ const Form = () => {
         toppings: updatedToppings,
       }));
     } else {
+      yup
+        .reach(pizzaSchema, name)
+        .validate(value)
+        .then(() => {
+          // If value is valid, the corresponding error message will be deleted
+          setFormErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
+        })
+        .catch((err) => {
+          // If invalid, we update the error message with the text returned by Yup
+          // This error message was hard-coded in the schema
+          setFormErrors((prevErrors) => ({
+            ...prevErrors,
+            [name]: err.errors[0],
+          }));
+        });
+
+      // Update the form values
       setFormValues((prevValues) => ({
         ...prevValues,
         [name]: value,
       }));
+
+      // Additional validation for the 'size' field
+      if (name === "size") {
+        yup
+          .reach(pizzaSchema, name)
+          .validate(value)
+          .then(() => {
+            // If value is valid, the corresponding error message will be deleted
+            setFormErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
+          })
+          .catch((err) => {
+            // If invalid, we update the error message with the text returned by Yup
+            // This error message was hard-coded in the schema
+            setFormErrors((prevErrors) => ({
+              ...prevErrors,
+              [name]: err.errors[0],
+            }));
+          });
+      }
     }
   };
 
@@ -74,57 +113,35 @@ const Form = () => {
     try {
       await pizzaSchema.validate(formValues);
 
-    // Extract topping names from the toppings array
-    const toppingNames = formValues.toppings.filter(topping => topping !== null).map(topping => topping.text);
+      const formData = {
+        ...formValues,
+      };
 
-    // Create a new object with the extracted toppings
-    const formData = {
-      ...formValues,
-      toppings: toppingNames,
-    };
-
-      // Send the form data to the API endpoint
       const response = await axios.post(
         "http://localhost:9009/api/order",
         formData
       );
-      console.log(response.data);
 
-      // Update the success message based on the response
       setSuccessMessage(response.data.message);
       setFailureMessage("");
-      // Additional logic or side effects may be here
-      console.log("Form submitted successfully!", formValues);
 
-      // Clear the form values after a successful order
       setFormValues({
         fullName: "",
         size: "",
         toppings: [],
       });
     } catch (error) {
-      // Simulate a failed form submission
       setFailureMessage("Something went wrong");
       setSuccessMessage("");
-
-      const fieldErrors = {};
-
-      // Handle errors for each field
-      if (error.inner) {
-        error.inner.forEach((err) => {
-          fieldErrors[err.path] = err.message;
-        });
-      }
-
-      setFormErrors(fieldErrors);
-      console.error("Form validation failed:", error);
     }
   };
 
   // Use useEffect to log formValues after the state has been updated
   useEffect(() => {
-    console.log("Form Values after state update:", formValues);
-  }, [formValues]); // This dependency array ensures that useEffect runs when formValues changes
+    pizzaSchema.isValid(formValues).then((isValid) => {
+      setIsFormValid(isValid);
+    });
+  }, [formValues]);
 
   return (
     <form onSubmit={handleSubmit}>
@@ -161,13 +178,9 @@ const Form = () => {
             onChange={handleChange}
           >
             <option value="">----Choose Size----</option>
-            {[
-              { value: "S", label: "Small" },
-              { value: "M", label: "Medium" },
-              { value: "L", label: "Large" },
-            ].map(({ value, label }) => (
+            {["S", "M", "L"].map((value) => (
               <option key={value} value={value}>
-                {label}
+                {value}
               </option>
             ))}
           </select>
@@ -181,9 +194,9 @@ const Form = () => {
             <input
               name={text}
               type="checkbox"
-              value={text}
+              value={topping_id}
               onChange={handleChange}
-              checked={formValues.toppings.includes(text)}
+              checked={formValues.toppings.includes(topping_id)}
             />
             {text}
             <br />
@@ -193,13 +206,7 @@ const Form = () => {
 
       <input
         type="submit"
-        disabled={
-          Object.values(formErrors).some(
-            (error) => error !== undefined && error !== ""
-          ) ||
-          formValues.fullName === "" ||
-          formValues.size === ""
-        }
+        disabled={!isFormValid || !!formErrors.fullName || !!formErrors.size}
       />
     </form>
   );

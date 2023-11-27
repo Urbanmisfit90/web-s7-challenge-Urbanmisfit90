@@ -81,7 +81,7 @@ describe('Sprint 7 Challenge Learner Tests', () => {
     });
   });
   test('you can comment out this test', () => {
-    expect(true).toBe(false)
+    //expect(true).toBe(false)
   })
 
 
